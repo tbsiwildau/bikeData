@@ -78,7 +78,6 @@ FARBEN = {
 
 PLOTLY_THEME = dict(
     template="plotly_white",
-    font_family="Inter",
     title_font_size=14,
     title_font_color="#1F2937",
     margin=dict(l=20, r=20, t=40, b=20),
