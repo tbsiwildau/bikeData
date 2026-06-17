@@ -67,12 +67,10 @@ FARBEN = {
 }
 
 def apply_theme(fig, height=None):
-    """Wendet einheitliches Layout auf alle Plotly-Figuren an."""
     fig.update_layout(
         template="plotly_white",
         margin=dict(l=20, r=20, t=40, b=20),
-        title_font_size=14,
-        title_font_color="#1F2937",
+        font=dict(color="#1F2937"),
     )
     if height:
         fig.update_layout(height=height)
@@ -95,6 +93,8 @@ def lade_daten(uploaded_file):
     df["Wochentag"]     = df["Zeitstempel"].dt.dayofweek.map(WOCHENTAG_MAP)
     df["Woche"]         = df["Zeitstempel"].dt.isocalendar().week.astype(int)
     df["IstWochenende"] = df["Zeitstempel"].dt.dayofweek >= 5
+    # Lesbares Label für Legende
+    df["TagTyp"] = df["IstWochenende"].map({False: "Werktag", True: "Wochenende"})
     return df
 
 
@@ -141,6 +141,7 @@ df = lade_daten(uploaded_file)
 pro_tag = df.groupby("Datum")["Anzahl"].sum().reset_index()
 pro_tag["Datum"] = pd.to_datetime(pro_tag["Datum"])
 pro_tag["IstWochenende"] = pro_tag["Datum"].dt.dayofweek >= 5
+pro_tag["TagTyp"] = pro_tag["IstWochenende"].map({False: "Werktag", True: "Wochenende"})
 
 zeitraum = f"{df['Zeitstempel'].min().strftime('%d.%m.%Y')} – {df['Zeitstempel'].max().strftime('%d.%m.%Y')}"
 
@@ -174,9 +175,9 @@ st.markdown('<div class="section-title">📈 Tagestrend</div>', unsafe_allow_htm
 fig_trend = px.line(
     pro_tag,
     x="Datum", y="Anzahl",
-    color="IstWochenende",
-    color_discrete_map={False: FARBEN["gruen"], True: FARBEN["coral"]},
-    labels={"Anzahl": "Radfahrende", "Datum": "", "IstWochenende": "Wochenende"},
+    color="TagTyp",
+    color_discrete_map={"Werktag": FARBEN["gruen"], "Wochenende": FARBEN["coral"]},
+    labels={"Anzahl": "Radfahrende", "Datum": "", "TagTyp": ""},
     markers=True,
     template="plotly_white",
 )
@@ -187,7 +188,6 @@ fig_trend.add_hline(
     annotation_font_color=FARBEN["grau"]
 )
 apply_theme(fig_trend, height=320)
-fig_trend.update_layout(legend_title="")
 st.plotly_chart(fig_trend, use_container_width=True)
 
 # ── Tagesgang + Wochenmuster ──────────────────────────────────────────────────
@@ -196,16 +196,16 @@ col_links, col_rechts = st.columns(2)
 with col_links:
     st.markdown('<div class="section-title">🕐 Tagesgang</div>', unsafe_allow_html=True)
     tagesgang = df.groupby(["Stunde", "IstWochenende"])["Anzahl"].mean().reset_index()
-    tagesgang["Tag"] = tagesgang["IstWochenende"].map({False: "Werktag", True: "Wochenende"})
+    tagesgang["TagTyp"] = tagesgang["IstWochenende"].map({False: "Werktag", True: "Wochenende"})
 
     fig_tg = px.bar(
-        tagesgang, x="Stunde", y="Anzahl", color="Tag", barmode="group",
+        tagesgang, x="Stunde", y="Anzahl", color="TagTyp", barmode="group",
         color_discrete_map={"Werktag": FARBEN["gruen"], "Wochenende": FARBEN["coral"]},
-        labels={"Anzahl": "Ø Radfahrende / Stunde", "Stunde": "Uhrzeit"},
+        labels={"Anzahl": "Ø Radfahrende / Stunde", "Stunde": "Uhrzeit", "TagTyp": ""},
         template="plotly_white",
     )
     apply_theme(fig_tg, height=320)
-    fig_tg.update_layout(legend_title="", xaxis=dict(tickmode="linear", dtick=2))
+    fig_tg.update_layout(xaxis=dict(tickmode="linear", dtick=2))
     st.plotly_chart(fig_tg, use_container_width=True)
 
 with col_rechts:
@@ -215,13 +215,13 @@ with col_rechts:
     pro_wt["Durchschnitt"] = (pro_wt["Anzahl"] / anzahl_wochen).round(0).astype(int)
     pro_wt["Wochentag"] = pd.Categorical(pro_wt["Wochentag"], categories=WOCHENTAG_ORDER, ordered=True)
     pro_wt = pro_wt.sort_values("Wochentag")
-    pro_wt["IstWochenende"] = pro_wt["Wochentag"].isin(["Samstag", "Sonntag"])
+    pro_wt["TagTyp"] = pro_wt["Wochentag"].isin(["Samstag", "Sonntag"]).map({False: "Werktag", True: "Wochenende"})
 
     fig_wt = px.bar(
         pro_wt, x="Wochentag", y="Durchschnitt",
-        color="IstWochenende",
-        color_discrete_map={False: FARBEN["gruen"], True: FARBEN["coral"]},
-        labels={"Durchschnitt": "Ø Radfahrende", "Wochentag": ""},
+        color="TagTyp",
+        color_discrete_map={"Werktag": FARBEN["gruen"], "Wochenende": FARBEN["coral"]},
+        labels={"Durchschnitt": "Ø Radfahrende", "Wochentag": "", "TagTyp": ""},
         text="Durchschnitt",
         template="plotly_white",
     )
