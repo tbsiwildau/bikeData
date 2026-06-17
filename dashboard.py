@@ -47,8 +47,16 @@ st.markdown("""
         padding-bottom: 0.4rem;
         border-bottom: 2px solid #E5E7EB;
     }
+            
+    [data-testid="stNumberInput"] input,
+    [data-testid="stTextInput"] input {
+        color: black !important;
+        background-color: white !important;
+        border: 1px solid #D1D5DB !important;
+    }
+
     [data-testid="stSidebar"] { background: #1B4F3A; }
-    [data-testid="stSidebar"] * { color: white !important; }
+    [data-testid="stSidebar"] * { color: white; }
 </style>
 """, unsafe_allow_html=True)
 
