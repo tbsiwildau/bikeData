@@ -18,11 +18,8 @@ st.set_page_config(
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-
     .main { background-color: #F7F9FC; }
-
     .hero {
         background: linear-gradient(135deg, #1B4F3A 0%, #2E7D55 100%);
         border-radius: 16px;
@@ -32,7 +29,6 @@ st.markdown("""
     }
     .hero h1 { font-size: 2.2rem; font-weight: 700; margin: 0; }
     .hero p  { font-size: 1rem; opacity: 0.85; margin: 0.4rem 0 0 0; }
-
     .kpi-card {
         background: white;
         border-radius: 12px;
@@ -43,7 +39,6 @@ st.markdown("""
     .kpi-label { font-size: 0.78rem; color: #6B7280; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
     .kpi-value { font-size: 2rem; font-weight: 700; color: #1B4F3A; line-height: 1.2; }
     .kpi-sub   { font-size: 0.8rem; color: #9CA3AF; margin-top: 0.2rem; }
-
     .section-title {
         font-size: 1.1rem;
         font-weight: 600;
@@ -52,16 +47,12 @@ st.markdown("""
         padding-bottom: 0.4rem;
         border-bottom: 2px solid #E5E7EB;
     }
-
-    [data-testid="stSidebar"] {
-        background: #1B4F3A;
-    }
+    [data-testid="stSidebar"] { background: #1B4F3A; }
     [data-testid="stSidebar"] * { color: white !important; }
-    [data-testid="stSidebar"] .stSelectbox label { color: #A7F3D0 !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── Hilfsfunktionen ───────────────────────────────────────────────────────────
+# ── Konstanten ────────────────────────────────────────────────────────────────
 WOCHENTAG_MAP = {
     0: "Montag", 1: "Dienstag", 2: "Mittwoch",
     3: "Donnerstag", 4: "Freitag", 5: "Samstag", 6: "Sonntag"
@@ -72,14 +63,20 @@ FARBEN = {
     "gruen":      "#2E7D55",
     "gruen_hell": "#4CAF82",
     "coral":      "#E07B54",
-    "blau":       "#3B82F6",
     "grau":       "#9CA3AF",
 }
 
-PLOTLY_THEME = dict(
-    template="plotly_white",
-    margin=dict(l=20, r=20, t=40, b=20),
-)
+def apply_theme(fig, height=None):
+    """Wendet einheitliches Layout auf alle Plotly-Figuren an."""
+    fig.update_layout(
+        template="plotly_white",
+        margin=dict(l=20, r=20, t=40, b=20),
+        title_font_size=14,
+        title_font_color="#1F2937",
+    )
+    if height:
+        fig.update_layout(height=height)
+    return fig
 
 
 @st.cache_data
@@ -93,7 +90,6 @@ def lade_daten(uploaded_file):
     df["Zeitstempel"] = pd.to_datetime(df["Zeitstempel"], format="%Y-%m-%d %H:%M:%S", errors="coerce")
     df = df.dropna(subset=["Zeitstempel"])
     df["Anzahl"] = pd.to_numeric(df["Anzahl"], errors="coerce").fillna(0).astype(int)
-
     df["Datum"]         = df["Zeitstempel"].dt.date
     df["Stunde"]        = df["Zeitstempel"].dt.hour
     df["Wochentag"]     = df["Zeitstempel"].dt.dayofweek.map(WOCHENTAG_MAP)
@@ -115,13 +111,11 @@ def kpi_card(label, value, sub=""):
 with st.sidebar:
     st.markdown("## 🚲 Radverkehr\n### Herzberg (Elster)")
     st.markdown("---")
-
     uploaded_file = st.file_uploader(
         "Eco-Visio CSV hochladen",
         type=["csv"],
         help="Export aus Eco-Visio (stündliche Auflösung)"
     )
-
     st.markdown("---")
     zaehler_name = st.text_input("Zählstellenname", value="Schliebener Straße")
     lat = st.number_input("Breitengrad", value=51.6917, format="%.4f")
@@ -163,7 +157,7 @@ with st.sidebar:
 # ── KPI-Kacheln ───────────────────────────────────────────────────────────────
 st.markdown(f'<div class="section-title">📋 Kennzahlen · {zeitraum}</div>', unsafe_allow_html=True)
 
-werktag_schnitt  = pro_tag[~pro_tag["IstWochenende"]]["Anzahl"].mean()
+werktag_schnitt   = pro_tag[~pro_tag["IstWochenende"]]["Anzahl"].mean()
 wochenend_schnitt = pro_tag[pro_tag["IstWochenende"]]["Anzahl"].mean()
 spitzentag = pro_tag.loc[pro_tag["Anzahl"].idxmax()]
 
@@ -184,7 +178,7 @@ fig_trend = px.line(
     color_discrete_map={False: FARBEN["gruen"], True: FARBEN["coral"]},
     labels={"Anzahl": "Radfahrende", "Datum": "", "IstWochenende": "Wochenende"},
     markers=True,
-    **PLOTLY_THEME
+    template="plotly_white",
 )
 fig_trend.add_hline(
     y=pro_tag["Anzahl"].mean(),
@@ -192,7 +186,8 @@ fig_trend.add_hline(
     annotation_text=f"Ø {pro_tag['Anzahl'].mean():.0f}",
     annotation_font_color=FARBEN["grau"]
 )
-fig_trend.update_layout(height=320, legend_title="")
+apply_theme(fig_trend, height=320)
+fig_trend.update_layout(legend_title="")
 st.plotly_chart(fig_trend, use_container_width=True)
 
 # ── Tagesgang + Wochenmuster ──────────────────────────────────────────────────
@@ -207,9 +202,10 @@ with col_links:
         tagesgang, x="Stunde", y="Anzahl", color="Tag", barmode="group",
         color_discrete_map={"Werktag": FARBEN["gruen"], "Wochenende": FARBEN["coral"]},
         labels={"Anzahl": "Ø Radfahrende / Stunde", "Stunde": "Uhrzeit"},
-        **PLOTLY_THEME
+        template="plotly_white",
     )
-    fig_tg.update_layout(height=320, legend_title="", xaxis=dict(tickmode="linear", dtick=2))
+    apply_theme(fig_tg, height=320)
+    fig_tg.update_layout(legend_title="", xaxis=dict(tickmode="linear", dtick=2))
     st.plotly_chart(fig_tg, use_container_width=True)
 
 with col_rechts:
@@ -227,10 +223,11 @@ with col_rechts:
         color_discrete_map={False: FARBEN["gruen"], True: FARBEN["coral"]},
         labels={"Durchschnitt": "Ø Radfahrende", "Wochentag": ""},
         text="Durchschnitt",
-        **PLOTLY_THEME
+        template="plotly_white",
     )
     fig_wt.update_traces(textposition="outside")
-    fig_wt.update_layout(height=320, showlegend=False)
+    apply_theme(fig_wt, height=320)
+    fig_wt.update_layout(showlegend=False)
     st.plotly_chart(fig_wt, use_container_width=True)
 
 # ── Heatmap ───────────────────────────────────────────────────────────────────
@@ -245,9 +242,9 @@ fig_heat = px.imshow(
     color_continuous_scale=[[0, "#F0FDF4"], [0.5, FARBEN["gruen_hell"]], [1, FARBEN["gruen"]]],
     labels={"x": "Uhrzeit", "y": "", "color": "Ø Radfahrende"},
     aspect="auto",
-    **PLOTLY_THEME
+    template="plotly_white",
 )
-fig_heat.update_layout(height=280)
+apply_theme(fig_heat, height=280)
 st.plotly_chart(fig_heat, use_container_width=True)
 
 # ── Karte ─────────────────────────────────────────────────────────────────────
@@ -265,7 +262,6 @@ folium.Marker(
     icon=folium.Icon(color="green", icon="info-sign"),
     tooltip=zaehler_name
 ).add_to(karte)
-
 st_folium(karte, height=350, use_container_width=True)
 
 # ── Footer ────────────────────────────────────────────────────────────────────
