@@ -190,16 +190,16 @@ fig_trend.add_hline(
 apply_theme(fig_trend, height=320)
 st.plotly_chart(fig_trend, use_container_width=True)
 
-# ── Tagesgang + Wochenmuster ──────────────────────────────────────────────────
+# ── Radverkehr nach Uhrzeit + Wochenmuster ──────────────────────────────────────────────────
 col_links, col_rechts = st.columns(2)
 
 with col_links:
-    st.markdown('<div class="section-title">🕐 Tagesgang</div>', unsafe_allow_html=True)
-    tagesgang = df.groupby(["Stunde", "IstWochenende"])["Anzahl"].mean().reset_index()
-    tagesgang["TagTyp"] = tagesgang["IstWochenende"].map({False: "Werktag", True: "Wochenende"})
+    st.markdown('<div class="section-title">🕐 Radverkehr nach Uhrzeit</div>', unsafe_allow_html=True)
+    pro_stunde = df.groupby(["Stunde", "IstWochenende"])["Anzahl"].mean().reset_index()
+    pro_stunde["TagTyp"] = pro_stunde["IstWochenende"].map({False: "Werktag", True: "Wochenende"})
 
     fig_tg = px.bar(
-        tagesgang, x="Stunde", y="Anzahl", color="TagTyp", barmode="group",
+        pro_stunde, x="Stunde", y="Anzahl", color="TagTyp", barmode="group",
         color_discrete_map={"Werktag": FARBEN["gruen"], "Wochenende": FARBEN["coral"]},
         labels={"Anzahl": "Ø Radfahrende / Stunde", "Stunde": "Uhrzeit", "TagTyp": ""},
         template="plotly_white",
