@@ -153,16 +153,6 @@ pro_tag["TagTyp"] = pro_tag["IstWochenende"].map({False: "Werktag", True: "Woche
 
 zeitraum = f"{df['Zeitstempel'].min().strftime('%d.%m.%Y')} – {df['Zeitstempel'].max().strftime('%d.%m.%Y')}"
 
-# ── Filter ────────────────────────────────────────────────────────────────────
-with st.sidebar:
-    st.markdown("### Filter")
-    jahre = sorted(df["Zeitstempel"].dt.year.unique())
-    if len(jahre) > 1:
-        jahr_filter = st.selectbox("Jahr", ["Alle"] + [str(j) for j in jahre])
-        if jahr_filter != "Alle":
-            df = df[df["Zeitstempel"].dt.year == int(jahr_filter)]
-            pro_tag = pro_tag[pro_tag["Datum"].dt.year == int(jahr_filter)]
-
 # ── KPI-Kacheln ───────────────────────────────────────────────────────────────
 st.markdown(f'<div class="section-title">📋 Kennzahlen · {zeitraum}</div>', unsafe_allow_html=True)
 
